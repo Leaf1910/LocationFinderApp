@@ -1,0 +1,77 @@
+package com.example.locationfinder
+
+import android.content.Context
+import android.database.Cursor
+import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteOpenHelper
+
+class DBHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
+
+    companion object {
+        private const val DATABASE_NAME = "locations.db"
+        private const val DATABASE_VERSION = 1
+
+        const val TABLE_NAME = "location"
+        const val COLUMN_ID = "id"
+        const val COLUMN_ADDRESS = "address"
+        const val COLUMN_LATITUDE = "latitude"
+        const val COLUMN_LONGITUDE = "longitude"
+
+        private const val TABLE_CREATE = "CREATE TABLE $TABLE_NAME (" +
+                "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "$COLUMN_ADDRESS TEXT, " +
+                "$COLUMN_LATITUDE REAL, " +
+                "$COLUMN_LONGITUDE REAL);"
+    }
+
+    override fun onCreate(db: SQLiteDatabase?) {
+        db?.execSQL(TABLE_CREATE)
+    }
+
+    override fun onUpgrade(db: SQLiteDatabase?, oldVersion: Int, newVersion: Int) {
+        db?.execSQL("DROP TABLE IF EXISTS $TABLE_NAME")
+        onCreate(db)
+    }
+
+    // Add location to the database
+    fun addLocation(address: String, latitude: Double, longitude: Double) {
+        val db = writableDatabase
+        val query = "INSERT INTO $TABLE_NAME ($COLUMN_ADDRESS, $COLUMN_LATITUDE, $COLUMN_LONGITUDE) VALUES ('$address', $latitude, $longitude)"
+        db.execSQL(query)
+        db.close()
+    }
+
+    // Get location by address
+    fun getLocationByAddress(address: String): String? {
+        val db = readableDatabase
+        val query = "SELECT * FROM $TABLE_NAME WHERE $COLUMN_ADDRESS = ?"
+        val cursor: Cursor = db.rawQuery(query, arrayOf(address))
+
+        var result: String? = null
+        if (cursor.moveToFirst()) {
+            val latitude = cursor.getDouble(cursor.getColumnIndex(COLUMN_LATITUDE))
+            val longitude = cursor.getDouble(cursor.getColumnIndex(COLUMN_LONGITUDE))
+            result = "Latitude: $latitude, Longitude: $longitude"
+        }
+
+        cursor.close()
+        db.close()
+        return result
+    }
+
+    // Update a location
+    fun updateLocation(id: Int, address: String, latitude: Double, longitude: Double) {
+        val db = writableDatabase
+        val query = "UPDATE $TABLE_NAME SET $COLUMN_ADDRESS = ?, $COLUMN_LATITUDE = ?, $COLUMN_LONGITUDE = ? WHERE $COLUMN_ID = ?"
+        db.execSQL(query, arrayOf(address, latitude, longitude, id))
+        db.close()
+    }
+
+    // Delete a location by ID
+    fun deleteLocation(id: Int) {
+        val db = writableDatabase
+        val query = "DELETE FROM $TABLE_NAME WHERE $COLUMN_ID = ?"
+        db.execSQL(query, arrayOf(id))
+        db.close()
+    }
+}
